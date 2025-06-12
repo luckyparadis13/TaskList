@@ -1,13 +1,28 @@
-import db from "#db/client";
+import db from "./client.js";
+import bcrypt from "bcrypt";
 
-import { createTask } from "#db/queries/tasks";
-import { createUser } from "#db/queries/users";
+const seed = async () => {
+  const password = await bcrypt.hash("password123", 10);
+  const {
+    rows: [user],
+  } = await db.query(
+    `INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *`,
+    ["luckyuser", password]
+  );
 
-await db.connect();
-await seed();
-await db.end();
-console.log("🌱 Database seeded.");
+  await db.query(
+    `
+    INSERT INTO tasks (user_id, title, done)
+    VALUES
+      ($1, 'Do laundry', false),
+      ($1, 'Write code', true),
+      ($1, 'Take a break', false)
+  `,
+    [user.id]
+  );
 
-async function seed() {
-  // TODO
-}
+  console.log("✅ Database seeded");
+  db.end();
+};
+
+seed();
